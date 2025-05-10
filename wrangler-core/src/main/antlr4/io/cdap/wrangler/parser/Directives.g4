@@ -64,8 +64,8 @@ directive
     | stringList
     | numberRanges
     | properties
-    | byteSizeArg
-    | timeDurationArg
+    | byteSize
+    | timeDuration
   )*?
   ;
 
@@ -142,12 +142,7 @@ numberRange
  ;
 
 value
- : String
- | Number
- | Column
- | Bool
- | BYTE_SIZE
- | TIME_DURATION
+ : String | Number | Column | Bool | BYTE_SIZE | TIME_DURATION
  ;
 
 ecommand
@@ -172,14 +167,6 @@ number
 
 bool
  : Bool
- ;
-
-byteSizeArg
- : BYTE_SIZE
- ;
-
-timeDurationArg
- : TIME_DURATION
  ;
 
 condition
@@ -210,6 +197,13 @@ identifierList
  : Identifier (',' Identifier)*
  ;
 
+byteSize
+ : BYTE_SIZE
+ ;
+
+timeDuration
+ : TIME_DURATION
+ ;
 
 /*
  * Following are the Lexer Rules used for tokenizing the recipe.
@@ -268,14 +262,6 @@ Bool
  | 'false'
  ;
 
-BYTE_SIZE
- : Number BYTE_UNIT
- ;
-
-TIME_DURATION
- : Number TIME_UNIT
- ;
-
 Number
  : Int ('.' Digit*)?
  ;
@@ -316,7 +302,7 @@ UnicodeEscape
    ;
 
 fragment
-HexDigit : ('0'..'9'|'a'..'f'|'A'..'F') ;
+   HexDigit : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 Comment
  : ('//' ~[\r\n]* | '/*' .*? '*/' | '--' ~[\r\n]* ) -> skip
@@ -326,6 +312,33 @@ Space
  : [ \t\r\n\u000C]+ -> skip
  ;
 
+BYTE_SIZE
+ : Int BYTE_UNIT
+ ;
+
+TIME_DURATION
+ : Int TIME_UNIT
+ ;
+
+fragment BYTE_UNIT
+ : [kK][bB]  // kilobyte
+ | [mM][bB]  // megabyte
+ | [gG][bB]  // gigabyte
+ | [tT][bB]  // terabyte
+ | [pP][bB]  // petabyte
+ | [bB]      // byte
+ ;
+
+fragment TIME_UNIT
+ : [sS]       // seconds
+ | [mM]       // minutes
+ | [hH]       // hours
+ | [dD]       // days
+ | [wW]       // weeks
+ | [mM][oO]   // months
+ | [yY]       // years
+ ;
+
 fragment Int
  : '-'? [1-9] Digit* [L]*
  | '0'
@@ -333,12 +346,4 @@ fragment Int
 
 fragment Digit
  : [0-9]
- ;
-
-fragment BYTE_UNIT
- : 'B' | 'KB' | 'MB' | 'GB' | 'TB'
- ;
-
-fragment TIME_UNIT
- : 'ms' | 's' | 'm' | 'h'
  ;
