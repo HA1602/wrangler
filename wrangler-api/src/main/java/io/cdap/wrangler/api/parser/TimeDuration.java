@@ -20,98 +20,98 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.cdap.wrangler.api.annotations.PublicEvolving;
 
-import java.util.concurrent.TimeUnit;
+import java.math.BigDecimal;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Token class representing time duration values with units (e.g., "5s", "10m", "2h").
- * Parses and stores time durations, providing methods to retrieve the value in various time units.
+ * Token class representing time duration values with units (e.g., "5ms", "10s").
+ * Parses and stores time durations, providing methods to retrieve the value in
+ * milliseconds, seconds, and in a canonical unit.
  */
 @PublicEvolving
 public class TimeDuration implements Token {
 
-    // Regular expression to identify the value and time unit
-    private static final Pattern TIME_PATTERN = Pattern.compile("([0-9]+)\s*([smhdwy]|mo)");
+    // Regular expression pattern to identify numerical values and time duration units
+    private static final Pattern TIME_PATTERN = Pattern.compile("([0-9]*\.?[0-9]+)\s*([ms])");
+
+    // Mapping of unit types to their respective millisecond multipliers
+    private static final Map<String, BigDecimal> UNIT_MULTIPLIERS = Map.of(
+        "ms", BigDecimal.valueOf(1),
+        "s", BigDecimal.valueOf(1000)
+    );
 
     // Original string representation of the time duration
-    private final String rawValue;
+    private final String originalValue;
 
-    // Converted time value in milliseconds
-    private final long totalMilliseconds;
+    // Total time duration calculated from the original value
+    private final BigDecimal totalMilliseconds;
 
     /**
      * Constructs a TimeDuration object from a string representation.
-     * @param rawValue The original string representing the time duration (e.g., "5s", "10m", "2h")
+     *
+     * @param originalValue The original string representing the time duration (e.g., "5ms", "10s")
      */
-    public TimeDuration(String rawValue) {
-        if (rawValue == null || rawValue.isEmpty()) {
+    public TimeDuration(String originalValue) {
+        if (originalValue == null || originalValue.isEmpty()) {
             throw new IllegalArgumentException("Time duration value cannot be null or empty");
         }
-        this.rawValue = rawValue;
-        this.totalMilliseconds = parseAndConvert(rawValue);
+        this.originalValue = originalValue;
+        this.totalMilliseconds = parseAndConvert(originalValue);
     }
 
     /**
      * Parses and converts the provided string representation into milliseconds.
-     * @param timeStr The string containing the numerical value and time unit (e.g., "5s")
+     *
+     * @param timeStr The string containing the numerical value and unit (e.g., "5ms")
      * @return The equivalent duration in milliseconds
      */
-    private long parseAndConvert(String timeStr) {
+    private BigDecimal parseAndConvert(String timeStr) {
         Matcher matcher = TIME_PATTERN.matcher(timeStr.trim());
 
+        // Validate if the string matches the time duration pattern
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Invalid time duration format: " + timeStr);
         }
 
-        long value = Long.parseLong(matcher.group(1));
+        // Extract the numerical part and the unit part
+        BigDecimal value = new BigDecimal(matcher.group(1));
         String unit = matcher.group(2).toLowerCase();
 
-        return convertToMilliseconds(value, unit);
-    }
-
-    /**
-     * Converts the parsed value to milliseconds based on the time unit.
-     * @param value The numeric value of the duration
-     * @param unit The time unit (e.g., "s", "m", "h")
-     * @return The duration in milliseconds
-     */
-    private long convertToMilliseconds(long value, String unit) {
-        return switch (unit) {
-            case "s" -> TimeUnit.SECONDS.toMillis(value);
-            case "m" -> TimeUnit.MINUTES.toMillis(value);
-            case "h" -> TimeUnit.HOURS.toMillis(value);
-            case "d" -> TimeUnit.DAYS.toMillis(value);
-            case "w" -> TimeUnit.DAYS.toMillis(value * 7);
-            case "mo" -> TimeUnit.DAYS.toMillis(value * 30);
-            case "y" -> TimeUnit.DAYS.toMillis(value * 365);
-            default -> throw new IllegalArgumentException("Unsupported time unit: " + unit);
-        };
+        // Convert the value to milliseconds using the multiplier map
+        return value.multiply(UNIT_MULTIPLIERS.getOrDefault(unit, BigDecimal.ONE));
     }
 
     @Override
     public String value() {
-        return rawValue;
+        return originalValue;
     }
 
-    public long getMilliseconds() {
+    /**
+     * Returns the total duration in milliseconds.
+     *
+     * @return Duration in milliseconds
+     */
+    public BigDecimal getMilliseconds() {
         return totalMilliseconds;
     }
 
-    public double toSeconds() {
-        return totalMilliseconds / 1000.0;
+    /**
+     * Returns the duration in seconds.
+     *
+     * @return Duration in seconds
+     */
+    public BigDecimal toSeconds() {
+        return totalMilliseconds.divide(BigDecimal.valueOf(1000), BigDecimal.ROUND_HALF_UP);
     }
 
-    public double toMinutes() {
-        return totalMilliseconds / (1000.0 * 60);
-    }
-
-    public double toHours() {
-        return totalMilliseconds / (1000.0 * 60 * 60);
-    }
-
-    public double toDays() {
-        return totalMilliseconds / (1000.0 * 60 * 60 * 24);
+    /**
+     * Retrieves the canonical unit representation (milliseconds) as a long value.
+     * @return The time duration as a long value.
+     */
+    public long getCanonicalMilliseconds() {
+        return totalMilliseconds.longValue();
     }
 
     @Override
@@ -123,8 +123,8 @@ public class TimeDuration implements Token {
     public JsonElement toJson() {
         JsonObject object = new JsonObject();
         object.addProperty("type", TokenType.TIME_DURATION.name());
-        object.addProperty("value", rawValue);
-        object.addProperty("milliseconds", totalMilliseconds);
+        object.addProperty("value", originalValue);
+        object.addProperty("milliseconds", totalMilliseconds.toString());
         return object;
     }
 }
