@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 /**
  * Token class representing byte size values with units (e.g., "10KB", "5MB").
  * Parses and stores byte sizes, providing methods to retrieve the value in
- * bytes, kilobytes, megabytes, and gigabytes.
+ * bytes, kilobytes, megabytes, gigabytes, and in a canonical unit.
  */
 @PublicEvolving
 public class ByteSize implements Token {
@@ -62,16 +62,16 @@ public class ByteSize implements Token {
             throw new IllegalArgumentException("Byte size value cannot be null or empty");
         }
         this.originalValue = originalValue;
-        this.totalBytes = convertToBytes(originalValue);
+        this.totalBytes = parseAndConvert(originalValue);
     }
 
     /**
-     * Converts the provided string representation into bytes.
+     * Parses and converts the provided string representation into bytes.
      *
      * @param sizeStr The string containing the numerical value and unit (e.g., "10KB")
      * @return The equivalent size in bytes
      */
-    private BigDecimal convertToBytes(String sizeStr) {
+    private BigDecimal parseAndConvert(String sizeStr) {
         Matcher matcher = BYTE_PATTERN.matcher(sizeStr.trim());
 
         // Validate if the string matches the byte size pattern
@@ -87,9 +87,6 @@ public class ByteSize implements Token {
         return value.multiply(UNIT_MULTIPLIERS.getOrDefault(unit, BigDecimal.ONE));
     }
 
-    /**
-     * Returns the original string representation of the byte size.
-     */
     @Override
     public String value() {
         return originalValue;
@@ -105,7 +102,7 @@ public class ByteSize implements Token {
     }
 
     /**
-     * Converts the byte size to kilobytes (KB).
+     * Returns the size in kilobytes (KB).
      *
      * @return Size in kilobytes
      */
@@ -114,7 +111,7 @@ public class ByteSize implements Token {
     }
 
     /**
-     * Converts the byte size to megabytes (MB).
+     * Returns the size in megabytes (MB).
      *
      * @return Size in megabytes
      */
@@ -123,7 +120,7 @@ public class ByteSize implements Token {
     }
 
     /**
-     * Converts the byte size to gigabytes (GB).
+     * Returns the size in gigabytes (GB).
      *
      * @return Size in gigabytes
      */
@@ -132,20 +129,18 @@ public class ByteSize implements Token {
     }
 
     /**
-     * Defines the type of the token as BYTE_SIZE.
-     *
-     * @return The TokenType as BYTE_SIZE
+     * Retrieves the canonical unit representation (bytes) as a long value.
+     * @return The byte size as a long value.
      */
+    public long getCanonicalBytes() {
+        return totalBytes.longValue();
+    }
+
     @Override
     public TokenType type() {
         return TokenType.BYTE_SIZE;
     }
 
-    /**
-     * Converts the ByteSize instance to a JSON representation.
-     *
-     * @return A JSON element containing type, value, and byte size
-     */
     @Override
     public JsonElement toJson() {
         JsonObject object = new JsonObject();
