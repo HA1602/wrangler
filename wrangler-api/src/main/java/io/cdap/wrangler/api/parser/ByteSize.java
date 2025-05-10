@@ -34,16 +34,14 @@ import java.util.regex.Pattern;
 public class ByteSize implements Token {
 
     // Regular expression pattern to identify numerical values and byte size units
-    private static final Pattern BYTE_PATTERN = Pattern.compile("([0-9]*\.?[0-9]+)\s*([kKmMgGtTpP]?[bB]?)");
+    private static final Pattern BYTE_PATTERN = Pattern.compile("([0-9]*\.?[0-9]+)\s*([kKmMgG]?[bB]?)");
 
     // Mapping of unit types to their respective byte multipliers
     private static final Map<String, BigDecimal> UNIT_MULTIPLIERS = Map.of(
         "B", BigDecimal.valueOf(1),
         "KB", BigDecimal.valueOf(1024),
         "MB", BigDecimal.valueOf(1024 * 1024),
-        "GB", BigDecimal.valueOf(1024 * 1024 * 1024),
-        "TB", BigDecimal.valueOf(1024L * 1024 * 1024 * 1024),
-        "PB", BigDecimal.valueOf(1024L * 1024 * 1024 * 1024 * 1024)
+        "GB", BigDecimal.valueOf(1024 * 1024 * 1024)
     );
 
     // Original string representation of the byte size
